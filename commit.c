@@ -248,18 +248,10 @@ int commit_create(const char *message, ObjectID *commit_id) {
         return -1;
     }
 
-    // Step 6: Save commit hash into HEAD
-    FILE *head_out = fopen(".pes/HEAD", "w");
+    // Step 6: Update HEAD properly
+	if (head_update(commit_id) != 0) {
+	    return -1;
+	}
 
-    if (!head_out) return -1;
-
-    char commit_hex[HASH_HEX_SIZE + 1];
-
-    hash_to_hex(commit_id, commit_hex);
-
-    fprintf(head_out, "%s", commit_hex);
-
-    fclose(head_out);
-
-    return 0;
+	return 0;
 }
