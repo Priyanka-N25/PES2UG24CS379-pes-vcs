@@ -193,9 +193,73 @@ int head_update(const ObjectID *new_commit) {
 //   - head_update       : moves the branch pointer to your new commit
 //
 // Returns 0 on success, -1 on error.
-int commit_create(const char *message, ObjectID *commit_id_out) {
-    // TODO: Implement commit creation
-    // (See Lab Appendix for logical steps)
-    (void)message; (void)commit_id_out;
-    return -1;
+int commit_create(const char *message, ObjectID *commit_id) {
+
+    ObjectID tree_id;
+
+    // Step 1: Create tree from index
+    if (tree_from_index(&tree_id) != 0) {
+        return -1;
+    }
+
+    // Step 2: Convert tree hash to hex
+    char tree_hex[HASH_HEX_SIZE + 1];
+    hash_to_hex(&tree_id, tree_hex);
+
+    // Step 3: Read parent commit from HEAD
+    char parent_hex[HASH_HEX_SIZE + 1] = {0};
+
+    FILE *head = fopen(".pes/HEAD", "r");
+
+    if (head) {
+        fgets(parent_hex, sizeof(parent_hex), head);
+        fclose(head);
+    }
+
+    // Step 4: Build commit content
+    char buffer[4096];
+
+    if (strlen(parent_hex) > 0) {
+        snprintf(
+            buffer,
+            sizeof(buffer),
+            "tree %s\nparent %s\nmessage %s\n",
+            tree_hex,
+            parent_hex,
+            message
+        );
+    } else {
+        snprintf(
+            buffer,
+            sizeof(buffer),
+            "tree %s\nmessage %s\n",
+            tree_hex,
+            message
+        );
+    }
+
+    // Step 5: Write commit object
+    if (object_write(
+            OBJ_COMMIT,
+            buffer,
+            strlen(buffer),
+            commit_id
+        ) != 0) {
+        return -1;
+    }
+
+    // Step 6: Save commit hash into HEAD
+    FILE *head_out = fopen(".pes/HEAD", "w");
+
+    if (!head_out) return -1;
+
+    char commit_hex[HASH_HEX_SIZE + 1];
+
+    hash_to_hex(commit_id, commit_hex);
+
+    fprintf(head_out, "%s", commit_hex);
+
+    fclose(head_out);
+
+    return 0;
 }
